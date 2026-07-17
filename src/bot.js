@@ -79,7 +79,37 @@ export function createBot({ config, store, providers }) {
     await ensureUser(store, msg);
     await bot.sendMessage(msg.chat.id, [
       'Dados armazenados: seu chat_id do Telegram, username/nome se disponivel, rotas monitoradas e historico minimo de alertas.',
-      'Use /remover <id> para excluir um alerta. A exclusao total sera adicionada na proxima etapa do projeto.'
+      'Use /remover <id> para excluir um alerta.',
+      'Use /excluir confirmar para apagar todos os seus dados deste bot.'
+    ].join('\n'));
+  });
+
+  bot.onText(/^\/excluir(?:\s+(.+))?$/, async (msg, match) => {
+    const confirmation = String(match[1] || '').trim().toLowerCase();
+    const existingUser = store.getUserByChatId(msg.chat.id);
+
+    if (!existingUser) {
+      await bot.sendMessage(msg.chat.id, 'Nao encontrei dados seus para excluir.');
+      return;
+    }
+
+    if (confirmation !== 'confirmar') {
+      await bot.sendMessage(msg.chat.id, [
+        'Esta acao apaga seu cadastro, alertas, observacoes e historico de notificacoes deste bot.',
+        'Para confirmar, envie:',
+        '/excluir confirmar'
+      ].join('\n'));
+      return;
+    }
+
+    const deleted = await store.deleteUserData(existingUser.id);
+    sessions.delete(String(msg.chat.id));
+    await bot.sendMessage(msg.chat.id, [
+      'Seus dados foram excluidos deste bot.',
+      `Usuarios removidos: ${deleted.users}`,
+      `Alertas removidos: ${deleted.monitors}`,
+      `Observacoes removidas: ${deleted.observations}`,
+      `Notificacoes removidas: ${deleted.alerts}`
     ].join('\n'));
   });
 
