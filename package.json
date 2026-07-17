@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "check": "node --check src/index.js && node --check src/bot.js && node --check src/scheduler.js && node --check src/store.js && node --check src/providers/serpapi.js && node --check src/providers/travelpayouts.js"
+    "check": "node --check src/index.js && node --check src/bot.js && node --check src/scheduler.js && node --check src/store.js && node --check src/providers/links.js && node --check src/providers/serpapi.js && node --check src/providers/travelpayouts.js"
   },
   "dependencies": {
     "dotenv": "^16.4.7"

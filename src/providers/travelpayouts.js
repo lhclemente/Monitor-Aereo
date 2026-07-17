@@ -58,7 +58,7 @@ export function createTravelpayoutsProvider(options) {
           price: Number(item.price || 0),
           currency: query.currency,
           stops: Number(item.transfers ?? 0),
-          bookingUrl: '',
+          bookingUrl: buildTravelpayoutsMarkerUrl(query, options.marker),
           expiresAt: item.expires_at || '',
           baggageSummary: 'Preco cacheado; revalidar antes da compra.'
         };
@@ -68,3 +68,4 @@ export function createTravelpayoutsProvider(options) {
     }
   };
 }
+import { buildTravelpayoutsMarkerUrl } from './links.js';

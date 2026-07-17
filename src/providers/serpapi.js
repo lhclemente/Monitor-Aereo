@@ -56,7 +56,7 @@ function normalizeOffer(item, query) {
     price,
     currency: query.currency,
     stops: Math.max(0, segments.length - 1),
-    bookingUrl: item.booking_token ? `https://www.google.com/travel/flights?booking_token=${encodeURIComponent(item.booking_token)}` : '',
+    bookingUrl: buildGoogleFlightsUrl(query),
     expiresAt: '',
     baggageSummary: item.extensions?.join(', ') || '',
     rawId: item.booking_token || ''
@@ -103,3 +103,4 @@ export function createSerpApiProvider(options) {
     }
   };
 }
+import { buildGoogleFlightsUrl } from './links.js';

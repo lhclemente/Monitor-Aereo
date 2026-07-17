@@ -14,7 +14,8 @@ export const config = {
     hl: process.env.SERPAPI_HL || 'pt-br'
   },
   travelpayouts: {
-    token: process.env.TRAVELPAYOUTS_TOKEN || ''
+    token: process.env.TRAVELPAYOUTS_TOKEN || '',
+    marker: process.env.TRAVELPAYOUTS_MARKER || ''
   }
 };
 
