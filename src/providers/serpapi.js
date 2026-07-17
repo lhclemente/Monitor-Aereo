@@ -1,3 +1,6 @@
+import { ProviderError } from './errors.js';
+import { buildGoogleFlightsUrl } from './links.js';
+
 function travelClass(value) {
   const normalized = String(value || 'ECONOMY').toUpperCase();
   const classes = {
@@ -93,8 +96,22 @@ export function createSerpApiProvider(options) {
       const response = await fetch(`https://serpapi.com/search.json?${params}`);
       const payload = await response.json().catch(() => null);
 
-      if (!response.ok || payload?.error) {
-        throw new Error(`SerpApi search failed: ${response.status} ${payload?.error || response.statusText}`);
+      if (response.ok && payload?.error && payload.error.includes("hasn't returned any results")) {
+        throw new ProviderError('no_results', 'SerpApi did not return results for this query.', { level: 'info' });
+      }
+
+      if (response.ok && payload?.error) {
+        throw new ProviderError('provider_response_error', `SerpApi returned an error: ${payload.error}`, {
+          retryable: false,
+          level: 'warn'
+        });
+      }
+
+      if (!response.ok) {
+        throw new ProviderError('provider_http_error', `SerpApi HTTP error: ${response.status} ${response.statusText}`, {
+          retryable: response.status >= 500,
+          level: response.status >= 500 ? 'error' : 'warn'
+        });
       }
 
       return pickFlights(payload)
@@ -103,4 +120,3 @@ export function createSerpApiProvider(options) {
     }
   };
 }
-import { buildGoogleFlightsUrl } from './links.js';
