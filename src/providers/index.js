@@ -1,6 +1,7 @@
 import { createSerpApiProvider } from './serpapi.js';
 import { createTravelpayoutsProvider } from './travelpayouts.js';
 import { createMockProvider } from './mock.js';
+import { normalizeProviderError } from './errors.js';
 
 export function createProviders(config) {
   const providers = [];
@@ -29,7 +30,7 @@ export async function searchBestOffers(providers, query) {
     if (result.status === 'fulfilled') {
       offers.push(...result.value);
     } else {
-      errors.push({ provider: provider.name, message: result.reason?.message || String(result.reason) });
+      errors.push({ provider: provider.name, ...normalizeProviderError(result.reason) });
     }
   }
 

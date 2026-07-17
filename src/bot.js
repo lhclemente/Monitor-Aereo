@@ -37,6 +37,25 @@ function parseSearchArgs(text, defaultCurrency) {
   };
 }
 
+function formatSearchFailure(errors) {
+  if (!errors.length) return 'Nenhuma oferta encontrada.';
+
+  const onlyNoResults = errors.every((error) => ['no_results', 'unsupported_date_range'].includes(error.code));
+  if (onlyNoResults) {
+    return 'Nenhuma oferta encontrada para essa rota/data nas fontes disponiveis.';
+  }
+
+  const visibleErrors = errors
+    .filter((error) => error.level !== 'info')
+    .map((error) => `${error.provider}: ${error.message}`);
+
+  if (!visibleErrors.length) {
+    return 'Nenhuma oferta encontrada para essa rota/data nas fontes disponiveis.';
+  }
+
+  return `Nenhuma oferta encontrada.\nErros: ${visibleErrors.join('; ')}`;
+}
+
 async function ensureUser(store, msg) {
   return store.upsertUser({
     telegramChatId: msg.chat.id,
@@ -156,7 +175,7 @@ export function createBot({ config, store, providers }) {
     }
     const { offers, errors } = await searchBestOffers(providers, query);
     if (!offers.length) {
-      await bot.sendMessage(msg.chat.id, `Nenhuma oferta encontrada.${errors.length ? `\nErros: ${errors.map((e) => `${e.provider}: ${e.message}`).join('; ')}` : ''}`);
+      await bot.sendMessage(msg.chat.id, formatSearchFailure(errors));
       return;
     }
     const best = offers[0];

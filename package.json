@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "check": "node --check src/index.js && node --check src/bot.js && node --check src/scheduler.js && node --check src/store.js && node --check src/storage/index.js && node --check src/storage/json-store.js && node --check src/storage/sqlite-store.js && node --check src/storage/postgres-store.js && node --check src/providers/links.js && node --check src/providers/serpapi.js && node --check src/providers/travelpayouts.js",
+    "check": "node --check src/index.js && node --check src/bot.js && node --check src/scheduler.js && node --check src/store.js && node --check src/storage/index.js && node --check src/storage/json-store.js && node --check src/storage/sqlite-store.js && node --check src/storage/postgres-store.js && node --check src/providers/errors.js && node --check src/providers/links.js && node --check src/providers/serpapi.js && node --check src/providers/travelpayouts.js",
     "migrate:json-to-sqlite": "node scripts/migrate-json-to-sqlite.js",
     "migrate:sqlite-to-postgres": "node scripts/migrate-sqlite-to-postgres.js"
   },
