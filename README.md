@@ -29,12 +29,13 @@ Variaveis principais:
 ```env
 TELEGRAM_BOT_TOKEN=
 TRAVELPAYOUTS_TOKEN=
+TRAVELPAYOUTS_MARKER=
 SERPAPI_API_KEY=
 SERPAPI_GL=br
 SERPAPI_HL=pt-br
 ```
 
-Se voce ja tem Telegram e Travelpayouts, o sistema roda com essas fontes. Adicione `SERPAPI_API_KEY` quando quiser consultar resultados do Google Flights via SerpApi.
+Se voce ja tem Telegram e Travelpayouts, o sistema roda com essas fontes. `TRAVELPAYOUTS_MARKER` e opcional e adiciona seu marcador de afiliado aos links do Aviasales. Adicione `SERPAPI_API_KEY` quando quiser consultar resultados do Google Flights via SerpApi.
 
 ## Comandos do bot
 
