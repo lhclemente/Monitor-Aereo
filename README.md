@@ -38,6 +38,25 @@ Para migrar dados existentes do JSON para SQLite:
 npm.cmd run migrate:json-to-sqlite
 ```
 
+Para producao, use PostgreSQL separado do backend:
+
+```env
+STORAGE_DRIVER=postgres
+DATABASE_URL=postgresql://usuario:senha@host.neon.tech/monitor_aereo?sslmode=require
+```
+
+Para migrar os dados do SQLite local para PostgreSQL:
+
+```powershell
+npm.cmd run migrate:sqlite-to-postgres
+```
+
+Se o SQLite de origem estiver em outro arquivo:
+
+```powershell
+$env:SQLITE_DATABASE_URL="./data/monitor-aereo.sqlite"; npm.cmd run migrate:sqlite-to-postgres
+```
+
 ## APIs
 
 O projeto ja tem conectores para:

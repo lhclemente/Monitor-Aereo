@@ -6,11 +6,13 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "check": "node --check src/index.js && node --check src/bot.js && node --check src/scheduler.js && node --check src/store.js && node --check src/storage/index.js && node --check src/storage/json-store.js && node --check src/storage/sqlite-store.js && node --check src/providers/links.js && node --check src/providers/serpapi.js && node --check src/providers/travelpayouts.js",
-    "migrate:json-to-sqlite": "node scripts/migrate-json-to-sqlite.js"
+    "check": "node --check src/index.js && node --check src/bot.js && node --check src/scheduler.js && node --check src/store.js && node --check src/storage/index.js && node --check src/storage/json-store.js && node --check src/storage/sqlite-store.js && node --check src/storage/postgres-store.js && node --check src/providers/links.js && node --check src/providers/serpapi.js && node --check src/providers/travelpayouts.js",
+    "migrate:json-to-sqlite": "node scripts/migrate-json-to-sqlite.js",
+    "migrate:sqlite-to-postgres": "node scripts/migrate-sqlite-to-postgres.js"
   },
   "dependencies": {
     "better-sqlite3": "^12.11.1",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "pg": "^8.22.0"
   }
 }

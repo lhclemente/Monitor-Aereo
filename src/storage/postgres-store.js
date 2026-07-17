@@ -1,7 +1,7 @@
-import { mkdir } from 'node:fs/promises';
-import { dirname } from 'node:path';
-import Database from 'better-sqlite3';
+import pg from 'pg';
 import { boolToInt, intToBool, newId, nowIso } from './utils.js';
+
+const { Pool } = pg;
 
 function userFromRow(row) {
   if (!row) return null;
@@ -39,38 +39,36 @@ function monitorFromRow(row) {
   };
 }
 
-export class SqliteStore {
-  constructor(filePath) {
-    this.filePath = filePath;
-    this.db = null;
-    this.data = {
-      users: []
-    };
+export class PostgresStore {
+  constructor(connectionString) {
+    this.connectionString = connectionString;
+    this.pool = null;
+    this.data = { users: [] };
   }
 
   async load() {
-    await mkdir(dirname(this.filePath), { recursive: true });
-    this.db = new Database(this.filePath);
-    this.db.pragma('journal_mode = WAL');
-    this.db.pragma('foreign_keys = ON');
-    this.migrate();
-    this.refreshCompatData();
+    this.pool = new Pool({
+      connectionString: this.connectionString,
+      ssl: this.connectionString.includes('sslmode=require') ? { rejectUnauthorized: false } : undefined
+    });
+    await this.migrate();
+    await this.refreshCompatData();
   }
 
   async save() {
-    this.refreshCompatData();
+    await this.refreshCompatData();
   }
 
-  close() {
-    this.db?.close();
+  async close() {
+    await this.pool?.end();
   }
 
-  refreshCompatData() {
-    this.data.users = this.listUsers();
+  async refreshCompatData() {
+    this.data.users = await this.listUsers();
   }
 
-  migrate() {
-    this.db.exec(`
+  async migrate() {
+    await this.pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         telegram_chat_id TEXT NOT NULL UNIQUE,
@@ -90,7 +88,7 @@ export class SqliteStore {
         destination TEXT NOT NULL,
         departure_date TEXT NOT NULL,
         return_date TEXT NOT NULL DEFAULT '',
-        max_price REAL NOT NULL,
+        max_price NUMERIC NOT NULL,
         currency TEXT NOT NULL,
         adults INTEGER NOT NULL DEFAULT 1,
         cabin_class TEXT NOT NULL DEFAULT 'ECONOMY',
@@ -105,10 +103,10 @@ export class SqliteStore {
         id TEXT PRIMARY KEY,
         monitor_id TEXT NOT NULL REFERENCES monitors(id) ON DELETE CASCADE,
         provider TEXT NOT NULL,
-        price REAL NOT NULL,
+        price NUMERIC NOT NULL,
         currency TEXT NOT NULL,
         fingerprint TEXT NOT NULL,
-        raw_json TEXT NOT NULL,
+        raw_json JSONB NOT NULL DEFAULT '{}'::jsonb,
         checked_at TEXT NOT NULL
       );
 
@@ -117,7 +115,7 @@ export class SqliteStore {
         monitor_id TEXT NOT NULL REFERENCES monitors(id) ON DELETE CASCADE,
         user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         provider TEXT NOT NULL,
-        price REAL NOT NULL,
+        price NUMERIC NOT NULL,
         currency TEXT NOT NULL,
         fingerprint TEXT NOT NULL,
         telegram_message_id TEXT NOT NULL DEFAULT '',
@@ -133,57 +131,44 @@ export class SqliteStore {
     `);
   }
 
-  listUsers() {
-    return this.db.prepare('SELECT * FROM users').all().map(userFromRow);
+  async listUsers() {
+    const result = await this.pool.query('SELECT * FROM users');
+    return result.rows.map(userFromRow);
   }
 
   async upsertUser(profile) {
     const telegramChatId = String(profile.telegramChatId);
-    const existing = this.getUserByChatId(telegramChatId);
     const timestamp = nowIso();
+    const id = newId('usr');
 
-    if (!existing) {
-      const user = {
-        id: newId('usr'),
-        telegramChatId,
-        telegramUsername: profile.telegramUsername || '',
-        firstName: profile.firstName || '',
-        status: 'active',
-        createdAt: timestamp,
-        updatedAt: timestamp
-      };
+    const result = await this.pool.query(`
+      INSERT INTO users (id, telegram_chat_id, telegram_username, first_name, status, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, 'active', $5, $5)
+      ON CONFLICT (telegram_chat_id) DO UPDATE
+      SET telegram_username = EXCLUDED.telegram_username,
+          first_name = EXCLUDED.first_name,
+          updated_at = EXCLUDED.updated_at
+      RETURNING *
+    `, [
+      id,
+      telegramChatId,
+      profile.telegramUsername || '',
+      profile.firstName || '',
+      timestamp
+    ]);
 
-      this.db.prepare(`
-        INSERT INTO users (id, telegram_chat_id, telegram_username, first_name, status, created_at, updated_at)
-        VALUES (@id, @telegramChatId, @telegramUsername, @firstName, @status, @createdAt, @updatedAt)
-      `).run(user);
-      this.refreshCompatData();
-      return user;
-    }
-
-    this.db.prepare(`
-      UPDATE users
-      SET telegram_username = @telegramUsername,
-          first_name = @firstName,
-          updated_at = @updatedAt
-      WHERE id = @id
-    `).run({
-      id: existing.id,
-      telegramUsername: profile.telegramUsername || existing.telegramUsername,
-      firstName: profile.firstName || existing.firstName,
-      updatedAt: timestamp
-    });
-
-    this.refreshCompatData();
-    return this.getUserByChatId(telegramChatId);
+    await this.refreshCompatData();
+    return userFromRow(result.rows[0]);
   }
 
-  getUserByChatId(chatId) {
-    return userFromRow(this.db.prepare('SELECT * FROM users WHERE telegram_chat_id = ?').get(String(chatId)));
+  async getUserByChatId(chatId) {
+    const result = await this.pool.query('SELECT * FROM users WHERE telegram_chat_id = $1', [String(chatId)]);
+    return userFromRow(result.rows[0]);
   }
 
-  getUserById(userId) {
-    return userFromRow(this.db.prepare('SELECT * FROM users WHERE id = ?').get(userId));
+  async getUserById(userId) {
+    const result = await this.pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+    return userFromRow(result.rows[0]);
   }
 
   async createMonitor(input) {
@@ -208,63 +193,81 @@ export class SqliteStore {
       updatedAt: timestamp
     };
 
-    this.db.prepare(`
+    await this.pool.query(`
       INSERT INTO monitors (
         id, user_id, active, trip_type, origin, destination, departure_date, return_date,
         max_price, currency, adults, cabin_class, check_interval_minutes,
         last_checked_at, last_notified_fingerprint, created_at, updated_at
       )
-      VALUES (
-        @id, @userId, @active, @tripType, @origin, @destination, @departureDate, @returnDate,
-        @maxPrice, @currency, @adults, @cabinClass, @checkIntervalMinutes,
-        @lastCheckedAt, @lastNotifiedFingerprint, @createdAt, @updatedAt
-      )
-    `).run({ ...monitor, active: boolToInt(monitor.active) });
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+    `, [
+      monitor.id,
+      monitor.userId,
+      boolToInt(monitor.active),
+      monitor.tripType,
+      monitor.origin,
+      monitor.destination,
+      monitor.departureDate,
+      monitor.returnDate,
+      monitor.maxPrice,
+      monitor.currency,
+      monitor.adults,
+      monitor.cabinClass,
+      monitor.checkIntervalMinutes,
+      monitor.lastCheckedAt,
+      monitor.lastNotifiedFingerprint,
+      monitor.createdAt,
+      monitor.updatedAt
+    ]);
 
     return monitor;
   }
 
-  listUserMonitors(userId) {
-    return this.db.prepare('SELECT * FROM monitors WHERE user_id = ? ORDER BY created_at ASC').all(userId).map(monitorFromRow);
+  async listUserMonitors(userId) {
+    const result = await this.pool.query('SELECT * FROM monitors WHERE user_id = $1 ORDER BY created_at ASC', [userId]);
+    return result.rows.map(monitorFromRow);
   }
 
-  listActiveMonitors() {
-    return this.db.prepare('SELECT * FROM monitors WHERE active = 1 ORDER BY created_at ASC').all().map(monitorFromRow);
+  async listActiveMonitors() {
+    const result = await this.pool.query('SELECT * FROM monitors WHERE active = 1 ORDER BY created_at ASC');
+    return result.rows.map(monitorFromRow);
   }
 
-  getMonitor(id) {
-    return monitorFromRow(this.db.prepare('SELECT * FROM monitors WHERE id = ?').get(id));
+  async getMonitor(id) {
+    const result = await this.pool.query('SELECT * FROM monitors WHERE id = $1', [id]);
+    return monitorFromRow(result.rows[0]);
   }
 
   async setMonitorActive(userId, monitorId, active) {
-    const result = this.db.prepare(`
+    const result = await this.pool.query(`
       UPDATE monitors
-      SET active = ?, updated_at = ?
-      WHERE id = ? AND user_id = ?
-    `).run(boolToInt(active), nowIso(), monitorId, userId);
+      SET active = $1, updated_at = $2
+      WHERE id = $3 AND user_id = $4
+      RETURNING *
+    `, [boolToInt(active), nowIso(), monitorId, userId]);
 
-    if (!result.changes) return null;
-    return this.getMonitor(monitorId);
+    return monitorFromRow(result.rows[0]);
   }
 
   async removeMonitor(userId, monitorId) {
-    const result = this.db.prepare('DELETE FROM monitors WHERE id = ? AND user_id = ?').run(monitorId, userId);
-    return result.changes > 0;
+    const result = await this.pool.query('DELETE FROM monitors WHERE id = $1 AND user_id = $2', [monitorId, userId]);
+    return result.rowCount > 0;
   }
 
   async deleteUserData(userId) {
-    const monitorIds = this.db.prepare('SELECT id FROM monitors WHERE user_id = ?').all(userId).map((row) => row.id);
+    const monitors = await this.pool.query('SELECT id FROM monitors WHERE user_id = $1', [userId]);
+    const monitorIds = monitors.rows.map((row) => row.id);
     const deleted = {
-      users: this.db.prepare('SELECT COUNT(*) AS count FROM users WHERE id = ?').get(userId).count,
+      users: Number((await this.pool.query('SELECT COUNT(*) AS count FROM users WHERE id = $1', [userId])).rows[0].count),
       monitors: monitorIds.length,
       observations: monitorIds.length
-        ? this.db.prepare(`SELECT COUNT(*) AS count FROM observations WHERE monitor_id IN (${monitorIds.map(() => '?').join(',')})`).get(...monitorIds).count
+        ? Number((await this.pool.query('SELECT COUNT(*) AS count FROM observations WHERE monitor_id = ANY($1)', [monitorIds])).rows[0].count)
         : 0,
-      alerts: this.db.prepare('SELECT COUNT(*) AS count FROM alerts WHERE user_id = ?').get(userId).count
+      alerts: Number((await this.pool.query('SELECT COUNT(*) AS count FROM alerts WHERE user_id = $1', [userId])).rows[0].count)
     };
 
-    this.db.prepare('DELETE FROM users WHERE id = ?').run(userId);
-    this.refreshCompatData();
+    await this.pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    await this.refreshCompatData();
     return deleted;
   }
 
@@ -277,29 +280,36 @@ export class SqliteStore {
       price: Number(offer.price),
       currency: offer.currency,
       fingerprint: offer.fingerprint,
-      rawJson: JSON.stringify(offer),
-      checkedAt
-    };
-
-    const transaction = this.db.transaction(() => {
-      this.db.prepare(`
-        INSERT INTO observations (id, monitor_id, provider, price, currency, fingerprint, raw_json, checked_at)
-        VALUES (@id, @monitorId, @provider, @price, @currency, @fingerprint, @rawJson, @checkedAt)
-      `).run(observation);
-      this.db.prepare('UPDATE monitors SET last_checked_at = ?, updated_at = ? WHERE id = ?').run(checkedAt, checkedAt, monitorId);
-    });
-    transaction();
-
-    return {
-      id: observation.id,
-      monitorId,
-      provider: observation.provider,
-      price: observation.price,
-      currency: observation.currency,
-      fingerprint: observation.fingerprint,
       raw: offer,
       checkedAt
     };
+
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(`
+        INSERT INTO observations (id, monitor_id, provider, price, currency, fingerprint, raw_json, checked_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8)
+      `, [
+        observation.id,
+        observation.monitorId,
+        observation.provider,
+        observation.price,
+        observation.currency,
+        observation.fingerprint,
+        JSON.stringify(observation.raw),
+        observation.checkedAt
+      ]);
+      await client.query('UPDATE monitors SET last_checked_at = $1, updated_at = $1 WHERE id = $2', [checkedAt, monitorId]);
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+
+    return observation;
   }
 
   async recordAlert(monitor, offer, telegramMessageId) {
@@ -316,14 +326,31 @@ export class SqliteStore {
       sentAt
     };
 
-    const transaction = this.db.transaction(() => {
-      this.db.prepare(`
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(`
         INSERT INTO alerts (id, monitor_id, user_id, provider, price, currency, fingerprint, telegram_message_id, sent_at)
-        VALUES (@id, @monitorId, @userId, @provider, @price, @currency, @fingerprint, @telegramMessageId, @sentAt)
-      `).run(alert);
-      this.db.prepare('UPDATE monitors SET last_notified_fingerprint = ?, updated_at = ? WHERE id = ?').run(offer.fingerprint, sentAt, monitor.id);
-    });
-    transaction();
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `, [
+        alert.id,
+        alert.monitorId,
+        alert.userId,
+        alert.provider,
+        alert.price,
+        alert.currency,
+        alert.fingerprint,
+        alert.telegramMessageId,
+        alert.sentAt
+      ]);
+      await client.query('UPDATE monitors SET last_notified_fingerprint = $1, updated_at = $2 WHERE id = $3', [offer.fingerprint, sentAt, monitor.id]);
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
 
     monitor.lastNotifiedFingerprint = offer.fingerprint;
     monitor.updatedAt = sentAt;
