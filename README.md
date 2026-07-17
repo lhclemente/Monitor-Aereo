@@ -14,6 +14,30 @@ npm.cmd install
 npm.cmd start
 ```
 
+## Banco de dados
+
+Por padrao, o bot usa SQLite:
+
+```env
+STORAGE_DRIVER=sqlite
+DATABASE_URL=./data/monitor-aereo.sqlite
+```
+
+O arquivo do banco fica em `data/`, que nao deve ser versionado.
+
+Para usar o armazenamento antigo em JSON:
+
+```env
+STORAGE_DRIVER=json
+DATA_FILE=./data/monitor-aereo.json
+```
+
+Para migrar dados existentes do JSON para SQLite:
+
+```powershell
+npm.cmd run migrate:json-to-sqlite
+```
+
 ## APIs
 
 O projeto ja tem conectores para:

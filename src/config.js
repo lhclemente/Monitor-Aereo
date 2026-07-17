@@ -6,6 +6,8 @@ export const config = {
   telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '',
   defaultCurrency: process.env.DEFAULT_CURRENCY || 'BRL',
   dataFile: process.env.DATA_FILE || './data/monitor-aereo.json',
+  databaseUrl: process.env.DATABASE_URL || './data/monitor-aereo.sqlite',
+  storageDriver: process.env.STORAGE_DRIVER || 'sqlite',
   checkIntervalMinutes: Number(process.env.CHECK_INTERVAL_MINUTES || 30),
   mockProviderEnabled: process.env.MOCK_PROVIDER_ENABLED !== 'false',
   serpapi: {
@@ -26,5 +28,9 @@ export function validateConfig() {
 
   if (!Number.isFinite(config.checkIntervalMinutes) || config.checkIntervalMinutes < 1) {
     throw new Error('CHECK_INTERVAL_MINUTES must be a positive number.');
+  }
+
+  if (!['json', 'sqlite'].includes(config.storageDriver)) {
+    throw new Error('STORAGE_DRIVER must be either "json" or "sqlite".');
   }
 }
