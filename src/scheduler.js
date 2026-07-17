@@ -21,7 +21,7 @@ export function startScheduler({ config, store, providers, bot }) {
     if (running) return;
     running = true;
     try {
-      const activeMonitors = store.listActiveMonitors().filter((monitor) => dueForCheck(monitor, config.checkIntervalMinutes));
+      const activeMonitors = (await store.listActiveMonitors()).filter((monitor) => dueForCheck(monitor, config.checkIntervalMinutes));
       for (const monitor of activeMonitors) {
         const query = {
           origin: monitor.origin,

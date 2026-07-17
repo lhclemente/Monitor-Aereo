@@ -30,7 +30,11 @@ export function validateConfig() {
     throw new Error('CHECK_INTERVAL_MINUTES must be a positive number.');
   }
 
-  if (!['json', 'sqlite'].includes(config.storageDriver)) {
-    throw new Error('STORAGE_DRIVER must be either "json" or "sqlite".');
+  if (!['json', 'sqlite', 'postgres'].includes(config.storageDriver)) {
+    throw new Error('STORAGE_DRIVER must be "json", "sqlite", or "postgres".');
+  }
+
+  if (config.storageDriver === 'postgres' && !config.databaseUrl.startsWith('postgres')) {
+    throw new Error('DATABASE_URL must be a PostgreSQL connection string when STORAGE_DRIVER=postgres.');
   }
 }

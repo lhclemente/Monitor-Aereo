@@ -65,7 +65,7 @@ export function createBot({ config, store, providers }) {
 
   bot.onText(/^\/status$/, async (msg) => {
     const user = await ensureUser(store, msg);
-    const monitors = store.listUserMonitors(user.id);
+    const monitors = await store.listUserMonitors(user.id);
     const active = monitors.filter((monitor) => monitor.active).length;
     await bot.sendMessage(msg.chat.id, [
       `Provedores ativos: ${providers.map((provider) => provider.name).join(', ') || 'nenhum'}`,
@@ -86,7 +86,7 @@ export function createBot({ config, store, providers }) {
 
   bot.onText(/^\/excluir(?:\s+(.+))?$/, async (msg, match) => {
     const confirmation = String(match[1] || '').trim().toLowerCase();
-    const existingUser = store.getUserByChatId(msg.chat.id);
+    const existingUser = await store.getUserByChatId(msg.chat.id);
 
     if (!existingUser) {
       await bot.sendMessage(msg.chat.id, 'Nao encontrei dados seus para excluir.');
@@ -121,7 +121,7 @@ export function createBot({ config, store, providers }) {
 
   bot.onText(/^\/alertas$/, async (msg) => {
     const user = await ensureUser(store, msg);
-    const monitors = store.listUserMonitors(user.id);
+    const monitors = await store.listUserMonitors(user.id);
     if (!monitors.length) {
       await bot.sendMessage(msg.chat.id, 'Voce ainda nao tem alertas. Use /novo para criar um.');
       return;
@@ -219,7 +219,7 @@ export function createBot({ config, store, providers }) {
 }
 
 export async function sendOfferAlert(bot, store, monitor, offer) {
-  const user = store.data.users.find((item) => item.id === monitor.userId);
+  const user = await store.getUserById(monitor.userId);
   if (!user) return;
   const message = await bot.sendMessage(user.telegramChatId, formatOfferAlert(monitor, offer));
   await store.recordAlert(monitor, offer, message.message_id);

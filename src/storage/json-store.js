@@ -56,6 +56,10 @@ export class JsonStore {
     return this.data.users.find((user) => user.telegramChatId === String(chatId));
   }
 
+  getUserById(userId) {
+    return this.data.users.find((user) => user.id === userId);
+  }
+
   async createMonitor(input) {
     const monitor = {
       id: newId('mon'),
