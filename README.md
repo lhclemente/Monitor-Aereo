@@ -18,11 +18,23 @@ npm.cmd start
 
 O projeto ja tem conectores para:
 
-- Amadeus Flight Offers Search, usando `AMADEUS_CLIENT_ID` e `AMADEUS_CLIENT_SECRET`.
+- SerpApi Google Flights, usando `SERPAPI_API_KEY`.
 - Travelpayouts Data API, usando `TRAVELPAYOUTS_TOKEN`.
 - Mock provider, habilitado por `MOCK_PROVIDER_ENABLED=true`, util para testar o bot sem credenciais.
 
-Sem credenciais externas, o bot funciona com o mock provider para validar cadastro, scheduler e notificacoes.
+Sem credenciais externas de busca, o bot funciona com o mock provider para validar cadastro, scheduler e notificacoes.
+
+Variaveis principais:
+
+```env
+TELEGRAM_BOT_TOKEN=
+TRAVELPAYOUTS_TOKEN=
+SERPAPI_API_KEY=
+SERPAPI_GL=br
+SERPAPI_HL=pt-br
+```
+
+Se voce ja tem Telegram e Travelpayouts, o sistema roda com essas fontes. Adicione `SERPAPI_API_KEY` quando quiser consultar resultados do Google Flights via SerpApi.
 
 ## Comandos do bot
 
@@ -46,4 +58,5 @@ Exemplo:
 
 - Precos sao informativos e podem mudar no site final.
 - Travelpayouts Data API retorna dados cacheados, entao e fonte auxiliar.
+- SerpApi consome creditos por busca; use intervalos conservadores no scheduler.
 - Scraping de companhias nao foi incluido no MVP por risco tecnico e juridico.
