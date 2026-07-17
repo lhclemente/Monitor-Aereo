@@ -1,12 +1,12 @@
-import { createAmadeusProvider } from './amadeus.js';
+import { createSerpApiProvider } from './serpapi.js';
 import { createTravelpayoutsProvider } from './travelpayouts.js';
 import { createMockProvider } from './mock.js';
 
 export function createProviders(config) {
   const providers = [];
 
-  const amadeus = createAmadeusProvider(config.amadeus);
-  if (amadeus.enabled) providers.push(amadeus);
+  const serpapi = createSerpApiProvider(config.serpapi);
+  if (serpapi.enabled) providers.push(serpapi);
 
   const travelpayouts = createTravelpayoutsProvider(config.travelpayouts);
   if (travelpayouts.enabled) providers.push(travelpayouts);

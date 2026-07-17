@@ -8,10 +8,10 @@ export const config = {
   dataFile: process.env.DATA_FILE || './data/monitor-aereo.json',
   checkIntervalMinutes: Number(process.env.CHECK_INTERVAL_MINUTES || 30),
   mockProviderEnabled: process.env.MOCK_PROVIDER_ENABLED !== 'false',
-  amadeus: {
-    clientId: process.env.AMADEUS_CLIENT_ID || '',
-    clientSecret: process.env.AMADEUS_CLIENT_SECRET || '',
-    env: process.env.AMADEUS_ENV || 'test'
+  serpapi: {
+    apiKey: process.env.SERPAPI_API_KEY || '',
+    gl: process.env.SERPAPI_GL || 'br',
+    hl: process.env.SERPAPI_HL || 'pt-br'
   },
   travelpayouts: {
     token: process.env.TRAVELPAYOUTS_TOKEN || ''
