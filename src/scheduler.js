@@ -14,6 +14,12 @@ function shouldAlert(monitor, offer) {
   return true;
 }
 
+function logProviderErrors(monitor, errors) {
+  const relevantErrors = errors.filter((error) => error.level !== 'info');
+  if (!relevantErrors.length) return;
+  console.warn('[provider errors]', monitor.id, relevantErrors);
+}
+
 export function startScheduler({ config, store, providers, bot }) {
   let running = false;
 
@@ -34,9 +40,7 @@ export function startScheduler({ config, store, providers, bot }) {
           cabinClass: monitor.cabinClass
         };
         const { offers, errors } = await searchBestOffers(providers, query);
-        if (errors.length) {
-          console.warn('[provider errors]', monitor.id, errors);
-        }
+        logProviderErrors(monitor, errors);
         if (offers[0]) {
           await store.recordObservation(monitor.id, offers[0]);
         }
