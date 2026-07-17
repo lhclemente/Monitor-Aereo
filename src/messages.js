@@ -42,6 +42,7 @@ export function helpText() {
     '/buscar ORIGEM DESTINO IDA [VOLTA] [PRECO_MAX] - busca manual',
     '/status - status do bot',
     '/privacidade - dados armazenados',
+    '/excluir confirmar - apagar seus dados',
     '/ajuda - ajuda',
     '',
     'Exemplo:',

@@ -47,6 +47,8 @@ Se voce ja tem Telegram e Travelpayouts, o sistema roda com essas fontes. `TRAVE
 - `/reativar <id>` - reativa um alerta.
 - `/buscar ORIGEM DESTINO IDA [VOLTA] [PRECO_MAX]` - busca manual.
 - `/status` - mostra status.
+- `/privacidade` - mostra quais dados sao armazenados.
+- `/excluir confirmar` - apaga seu cadastro, alertas e historico local.
 - `/ajuda` - lista comandos.
 
 Exemplo:

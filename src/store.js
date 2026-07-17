@@ -118,6 +118,29 @@ export class JsonStore {
     return this.data.monitors.length !== before;
   }
 
+  async deleteUserData(userId) {
+    const monitorIds = new Set(
+      this.data.monitors
+        .filter((monitor) => monitor.userId === userId)
+        .map((monitor) => monitor.id)
+    );
+
+    const deleted = {
+      users: this.data.users.filter((user) => user.id === userId).length,
+      monitors: monitorIds.size,
+      observations: this.data.observations.filter((observation) => monitorIds.has(observation.monitorId)).length,
+      alerts: this.data.alerts.filter((alert) => alert.userId === userId || monitorIds.has(alert.monitorId)).length
+    };
+
+    this.data.users = this.data.users.filter((user) => user.id !== userId);
+    this.data.monitors = this.data.monitors.filter((monitor) => monitor.userId !== userId);
+    this.data.observations = this.data.observations.filter((observation) => !monitorIds.has(observation.monitorId));
+    this.data.alerts = this.data.alerts.filter((alert) => alert.userId !== userId && !monitorIds.has(alert.monitorId));
+
+    await this.save();
+    return deleted;
+  }
+
   async recordObservation(monitorId, offer) {
     const observation = {
       id: newId('obs'),
