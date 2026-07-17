@@ -1,3 +1,4 @@
+import { createFlightApiProvider } from './flightapi.js';
 import { createSerpApiProvider } from './serpapi.js';
 import { createTravelpayoutsProvider } from './travelpayouts.js';
 import { createMockProvider } from './mock.js';
@@ -5,6 +6,9 @@ import { normalizeProviderError } from './errors.js';
 
 export function createProviders(config) {
   const providers = [];
+
+  const flightapi = createFlightApiProvider(config.flightapi);
+  if (flightapi.enabled) providers.push(flightapi);
 
   const serpapi = createSerpApiProvider(config.serpapi);
   if (serpapi.enabled) providers.push(serpapi);

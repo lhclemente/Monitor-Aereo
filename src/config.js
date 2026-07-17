@@ -10,6 +10,9 @@ export const config = {
   storageDriver: process.env.STORAGE_DRIVER || 'sqlite',
   checkIntervalMinutes: Number(process.env.CHECK_INTERVAL_MINUTES || 30),
   mockProviderEnabled: process.env.MOCK_PROVIDER_ENABLED !== 'false',
+  flightapi: {
+    apiKey: process.env.FLIGHTAPI_KEY || ''
+  },
   serpapi: {
     apiKey: process.env.SERPAPI_API_KEY || '',
     gl: process.env.SERPAPI_GL || 'br',

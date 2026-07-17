@@ -62,6 +62,7 @@ $env:SQLITE_DATABASE_URL="./data/monitor-aereo.sqlite"; npm.cmd run migrate:sqli
 O projeto ja tem conectores para:
 
 - SerpApi Google Flights, usando `SERPAPI_API_KEY`.
+- FlightAPI.io, usando `FLIGHTAPI_KEY`.
 - Travelpayouts Data API, usando `TRAVELPAYOUTS_TOKEN`.
 - Mock provider, habilitado por `MOCK_PROVIDER_ENABLED=true`, util para testar o bot sem credenciais.
 
@@ -74,6 +75,7 @@ TELEGRAM_BOT_TOKEN=
 TRAVELPAYOUTS_TOKEN=
 TRAVELPAYOUTS_MARKER=
 SERPAPI_API_KEY=
+FLIGHTAPI_KEY=
 SERPAPI_GL=br
 SERPAPI_HL=pt-br
 ```
